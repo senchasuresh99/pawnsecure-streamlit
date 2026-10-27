@@ -1,270 +1,243 @@
+import streamlit as st
 import requests
 import pandas as pd
-import streamlit as st
-from html import escape
+from datetime import date
 
-st.set_page_config(page_title="PawnSecure", page_icon="🔐", layout="wide", initial_sidebar_state="collapsed")
-DEFAULT_API = "https://pawnsecure.onrender.com"
-PATHS = {
-    "login": "/api/auth/login",
-    "admin_dealers": "/api/admin/dealers",
-    "admin_pending": "/api/admin/pending",
-    "dashboard_stats": "/api/dashboard/stats",
-    "girvi": "/api/girvi",
-    "today_summary": "/api/girvi/today/summary",
-    "due_today": "/api/girvi/due-today",
-    "overdue": "/api/girvi/overdue",
-    "customers": "/api/customers/yourCustomer",
-}
+st.set_page_config(page_title="PawnSecure | Admin Console", page_icon="🔐", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-:root { --purple:#7028e4; --purple2:#4f46e5; --ink:#182033; --muted:#778094; --line:#ececf4; }
-html, body, [class*="css"] { font-family: Inter, system-ui, sans-serif; }
-.stApp { background: #f5f6fb; color: var(--ink); }
-.block-container { max-width: 1180px; padding-top: 1.3rem; padding-bottom: 3rem; }
-[data-testid="stHeader"] { background: transparent; }
-[data-testid="stSidebar"] { background: #fff; border-right: 1px solid var(--line); }
-.hero {
-  background: linear-gradient(125deg,#6d28d9 0%,#5b35db 55%,#4338ca 100%);
-  padding: 28px 30px; border-radius: 26px; color: white; margin-bottom: 22px;
-  box-shadow: 0 14px 35px rgba(91,53,219,.18);
-}
-.brand-row { display:flex; align-items:center; gap:14px; }
-.brand-mark { width:52px; height:52px; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.25); border-radius:16px; font-size:27px; }
-.brand-name { font-size:25px; font-weight:800; letter-spacing:-.5px; line-height:1.1; }
-.brand-sub { font-size:13px; color:rgba(255,255,255,.8); margin-top:5px; }
-.hero-title { font-size:clamp(25px,3.5vw,36px); font-weight:800; margin:25px 0 5px; letter-spacing:-.8px; }
-.hero-desc { color:rgba(255,255,255,.82); font-size:14px; }
-.section-title { font-size:21px; font-weight:750; margin: 24px 0 13px; letter-spacing:-.4px; }
-.metric-card { background:white; border:1px solid #eeeef5; border-radius:20px; padding:19px; min-height:118px; box-shadow:0 4px 14px rgba(20,25,50,.035); }
-.metric-top { color:#737c8e; font-size:13px; font-weight:600; display:flex; align-items:center; gap:9px; }
-.metric-icon { width:36px; height:36px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; font-size:17px; }
-.metric-value { font-size:28px; font-weight:800; color:#151b2a; margin-top:12px; letter-spacing:-.7px; }
-.metric-note { font-size:12px; color:#9299a8; margin-top:2px; }
-.dealer-card { background:#fff; border:1px solid #ececf4; border-radius:20px; padding:19px; margin: 10px 0; box-shadow:0 4px 14px rgba(20,25,50,.035); }
-.dealer-title { font-size:17px; font-weight:750; color:#1a2233; padding-right:8px; }
-.dealer-meta { color:#747d90; font-size:13px; margin-top:8px; overflow-wrap:anywhere; }
-.badge { display:inline-block; padding:6px 11px; border-radius:999px; font-size:11px; font-weight:750; letter-spacing:.25px; }
-.badge-green { background:#dcfce7; color:#15803d; }
-.badge-orange { background:#fff0d9; color:#b45309; }
-.badge-purple { background:#f0e7ff; color:#6d28d9; }
-.login-shell { max-width:520px; margin: 4vh auto 0; }
-.login-panel { background:white; border:1px solid #ececf4; border-radius:24px; padding:26px; box-shadow:0 12px 35px rgba(20,25,50,.06); }
-.small-muted { color:#81899a; font-size:13px; }
-div.stButton > button { border-radius:13px; min-height:44px; font-weight:650; border:1px solid #e4e4ef; }
-div.stButton > button[kind="primary"] { background:linear-gradient(100deg,#7c3aed,#5b35db); border:0; color:white; }
-.stTextInput input, .stSelectbox div[data-baseweb="select"] { border-radius:12px; }
-div[data-testid="stDataFrame"] { border:1px solid #e9e9f2; border-radius:14px; overflow:hidden; }
-hr { border-color:#e7e8f0; }
-@media (max-width: 640px) {
- .block-container { padding: .8rem .8rem 2rem; }
- .hero { padding:22px 19px; border-radius:21px; }
- .brand-name { font-size:22px; }
- .metric-card { padding:14px; min-height:105px; border-radius:16px; }
- .metric-value { font-size:24px; }
- .dealer-card { padding:15px; border-radius:17px; }
- .login-panel { padding:20px; }
-}
+:root { --purple:#5b2be0; --ink:#18233b; --muted:#718096; }
+.block-container {padding-top:1.2rem; padding-bottom:2rem; max-width:1500px;}
+[data-testid="stSidebar"] {background:linear-gradient(180deg,#fbfaff 0%,#f4f0ff 100%); border-right:1px solid #ebe6fa;}
+.hero {background:linear-gradient(110deg,#4c1dce 0%,#7139ec 55%,#4d49e8 100%); color:white; padding:28px 30px; border-radius:20px; margin-bottom:18px; box-shadow:0 10px 30px #4f2bd51c;}
+.hero h1 {font-size:2rem; margin:0 0 8px 0; color:white;}
+.hero p {margin:0; color:#eee8ff;}
+.metric-card {background:#fff; border:1px solid #e9eaf3; border-radius:16px; padding:18px 18px 15px 18px; min-height:120px; box-shadow:0 3px 12px #1a24500a;}
+.metric-label {color:#69758c; font-size:.92rem; margin-bottom:8px;}
+.metric-value {font-size:2rem; font-weight:750; color:#18233b; line-height:1.1;}
+.metric-icon {font-size:1.25rem; float:right; background:#f1eaff; padding:8px 10px; border-radius:12px;}
+.section-title {font-size:1.25rem; font-weight:750; color:#18233b; margin:1.2rem 0 .7rem 0;}
+div[data-testid="stButton"] button {border-radius:10px; font-weight:600;}
+.status-approved {background:#e0f9eb;color:#087443;border-radius:20px;padding:5px 10px;font-weight:700;font-size:.82rem;}
+.small-muted {color:#718096;font-size:.88rem;}
 </style>
 """, unsafe_allow_html=True)
 
-if "auth" not in st.session_state: st.session_state.auth = None
+DEFAULT_API = "https://pawnsecure.onrender.com"
 if "api_base" not in st.session_state: st.session_state.api_base = DEFAULT_API
+if "token" not in st.session_state: st.session_state.token = ""
+if "dealer_id" not in st.session_state: st.session_state.dealer_id = ""
+if "user_name" not in st.session_state: st.session_state.user_name = ""
+if "role" not in st.session_state: st.session_state.role = ""
+if "dashboard_data" not in st.session_state: st.session_state.dashboard_data = {}
 
-def api_request(method, path, *, token=None, dealer_id=None, params=None, body=None, timeout=20):
-    headers = {"Accept":"application/json"}
-    if token: headers["Authorization"] = "Bearer " + token
-    if dealer_id is not None: headers["X-DEALER-ID"] = str(dealer_id)
+def api_call(method, path, *, json_data=None, params=None, needs_dealer=True, timeout=25):
+    headers = {}
+    if st.session_state.token:
+        headers["Authorization"] = f"Bearer {st.session_state.token}"
+    if needs_dealer and st.session_state.dealer_id:
+        headers["X-DEALER-ID"] = str(st.session_state.dealer_id)
+    url = st.session_state.api_base.rstrip("/") + path
     try:
-        r = requests.request(method, st.session_state.api_base.rstrip("/") + path,
-                             headers=headers, params=params, json=body, timeout=timeout)
-        if not r.ok: return None, f"HTTP {r.status_code}: {(r.text or r.reason)[:350]}"
-        if not r.content: return {}, None
-        try: return r.json(), None
-        except ValueError: return r.text, None
+        r = requests.request(method, url, headers=headers, json=json_data, params=params, timeout=timeout)
+        try: payload = r.json()
+        except Exception: payload = r.text
+        return r.status_code, payload
     except requests.RequestException as e:
-        return None, f"API connection failed: {e}"
+        return 0, str(e)
 
-def hero(title, subtitle, role="Trusted Records"):
-    st.markdown(f"""
-    <div class="hero">
-      <div class="brand-row"><div class="brand-mark">🔐</div>
-        <div><div class="brand-name">PawnSecure</div><div class="brand-sub">{escape(role)}</div></div>
-      </div>
-      <div class="hero-title">{escape(title)}</div>
-      <div class="hero-desc">{escape(subtitle)}</div>
-    </div>""", unsafe_allow_html=True)
+def as_list(payload):
+    if isinstance(payload, list): return payload
+    if isinstance(payload, dict):
+        for key in ("content","data","dealers","items","results"):
+            if isinstance(payload.get(key), list): return payload[key]
+    return []
 
-def metric_card(label, value, icon, tone, note="Live data from your backend"):
-    colors = {"purple":("#f0e7ff","#7c3aed"), "blue":("#e2edff","#2563eb"),
-              "green":("#dcfce7","#16a34a"), "orange":("#ffedd5","#ea580c"),
-              "red":("#fee2e2","#dc2626"), "teal":("#ccfbf1","#0f9f91")}
-    bg, fg = colors.get(tone, colors["purple"])
-    st.markdown(f"""<div class="metric-card">
-      <div class="metric-top"><span class="metric-icon" style="background:{bg};color:{fg}">{icon}</span>{escape(str(label))}</div>
-      <div class="metric-value">{escape(str(value))}</div><div class="metric-note">{escape(note)}</div>
-    </div>""", unsafe_allow_html=True)
+def first_value(obj, *keys, default="—"):
+    if not isinstance(obj, dict): return default
+    for k in keys:
+        v=obj.get(k)
+        if v is not None and v!="": return v
+    return default
 
-def dealer_cards(rows):
-    if not rows:
-        st.info("No dealer records were returned by the API.")
-        return
-    for d in rows:
-        if not isinstance(d, dict):
-            continue
-        name = d.get("name") or d.get("dealerName") or d.get("shopName") or "Dealer"
-        did = d.get("id", d.get("dealerId", "—"))
-        gst = d.get("gstNumber") or d.get("gst") or d.get("gstin") or "Not provided"
-        phone = d.get("phone") or d.get("phoneNumber") or d.get("mobile") or "Not provided"
-        email = d.get("email") or "Not provided"
-        status = str(d.get("status") or d.get("approvalStatus") or ("Approved" if d.get("approved") is True else "Dealer")).upper()
-        is_pending = "PENDING" in status or "REJECT" in status
-        badge = "badge-orange" if is_pending else "badge-green"
-        label = "PENDING" if "PENDING" in status else ("REJECTED" if "REJECT" in status else ("APPROVED" if ("APPROV" in status or d.get("approved") is True) else escape(status.title())))
-        st.markdown(f"""<div class="dealer-card">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-            <div class="dealer-title">🏪 {escape(str(name))}</div><span class="badge {badge}">● {label}</span>
-          </div>
-          <div class="dealer-meta">Dealer ID: {escape(str(did))} &nbsp;·&nbsp; GST: {escape(str(gst))}</div>
-          <div class="dealer-meta">☎ {escape(str(phone))} &nbsp;·&nbsp; ✉ {escape(str(email))}</div>
-        </div>""", unsafe_allow_html=True)
-
-def show_data(data, label):
-    if data is None:
-        st.info(f"No {label} data loaded yet.")
-    elif isinstance(data, list):
-        if data:
-            st.dataframe(pd.json_normalize(data), use_container_width=True, hide_index=True)
-        else: st.info(f"No {label} records found.")
-    elif isinstance(data, dict):
-        numeric = [(k,v) for k,v in data.items() if isinstance(v,(int,float)) and not isinstance(v,bool)]
-        if numeric:
-            cols = st.columns(min(3,len(numeric)))
-            for i,(k,v) in enumerate(numeric[:3]): cols[i].metric(k.replace("_"," ").title(),v)
-        with st.expander("View API response details"): st.json(data)
-    else: st.write(data)
-
-# Header and sign-in
-if not st.session_state.auth:
-    hero("Your business. Your records. Your trust.", "A secure analytics space for PawnSecure dealers and administrators.", "Admin & Dealer Portal")
-    st.markdown('<div class="login-shell"><div class="section-title">Welcome back 👋</div><p class="small-muted">Sign in with your existing PawnSecure account.</p></div>', unsafe_allow_html=True)
-    with st.container(border=True):
-        email = st.text_input("Email address", placeholder="you@example.com")
-        password = st.text_input("Password", type="password", placeholder="Enter your password")
-        st.caption("🔒 Authentication is handled by your existing Spring Boot backend.")
-        if st.button("Sign in securely  →", type="primary", use_container_width=True):
-            if not email.strip() or not password:
-                st.error("Please enter both your email and password.")
-            else:
-                result, err = api_request("POST", PATHS["login"], body={"email":email.strip(),"password":password})
-                if err: st.error(err)
-                elif not isinstance(result,dict) or not result.get("token"):
-                    st.error("The login response did not contain a token. Check the backend response.")
-                    st.json(result)
-                else:
-                    st.session_state.auth = result
-                    st.rerun()
-    with st.expander("Connection settings"):
-        st.session_state.api_base = st.text_input("Backend API URL", st.session_state.api_base).strip().rstrip("/")
-    st.markdown('<p class="small-muted" style="text-align:center;margin-top:28px">PawnSecure · Connecting Trust. Securing Value.</p>', unsafe_allow_html=True)
-    st.stop()
-
-auth = st.session_state.auth
-token = auth.get("token")
-role = str(auth.get("role","")).upper().replace("ROLE_","")
-dealer_id = auth.get("id", auth.get("dealerId"))
-name = auth.get("name") or auth.get("dealerName") or "User"
+def show_metric(col, icon, label, value, note="Live API data"):
+    with col:
+        st.markdown(f'<div class="metric-card"><span class="metric-icon">{icon}</span><div class="metric-label">{label}</div><div class="metric-value">{value}</div><div class="small-muted">{note}</div></div>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.markdown("## 🔐 PawnSecure")
-    st.caption("Business analytics")
-    st.session_state.api_base = st.text_input("Backend API URL", st.session_state.api_base).strip().rstrip("/")
+    st.caption("Trusted Pawnbroking Platform")
     st.divider()
-    st.markdown(f"**{name}**")
-    st.caption(f"{role.title()} account")
-    if st.button("Log out", use_container_width=True):
-        st.session_state.auth = None
-        st.session_state.pop("admin_dealers",None)
-        st.session_state.pop("admin_pending",None)
-        st.session_state.pop("dealer_results",None)
-        st.rerun()
+    page = st.radio("WORKSPACE", ["Overview", "Dealer Management", "Dealer Dashboard", "API & Settings"], label_visibility="visible")
+    st.divider()
+    st.markdown("**Connection**")
+    st.caption("Spring Boot API")
+    st.code(st.session_state.api_base, language=None)
+    if st.session_state.token:
+        st.success(f"Signed in · {st.session_state.role or 'User'}")
+        if st.button("Sign out", use_container_width=True):
+            for k in ["token","dealer_id","user_name","role","dashboard_data"]:
+                st.session_state[k] = "" if k != "dashboard_data" else {}
+            st.rerun()
+    else:
+        st.info("Sign in to load protected data")
 
-if role == "ADMIN":
-    hero("Admin Dashboard", f"Welcome back, {name}. Manage dealer visibility and review account records.", "Admin Portal")
-    dealers_data = st.session_state.get("admin_dealers")
-    pending_data = st.session_state.get("admin_pending")
-    if st.button("↻  Refresh dashboard data", type="primary", use_container_width=True):
-        data, err = api_request("GET",PATHS["admin_dealers"],token=token)
-        st.session_state.admin_dealers = (data,err)
-        data2, err2 = api_request("GET",PATHS["admin_pending"],token=token)
-        st.session_state.admin_pending = (data2,err2)
-        st.rerun()
-    dealers_data = st.session_state.get("admin_dealers")
-    pending_data = st.session_state.get("admin_pending")
-    dealers = dealers_data[0] if dealers_data and not dealers_data[1] and isinstance(dealers_data[0],list) else []
-    pending = pending_data[0] if pending_data and not pending_data[1] and isinstance(pending_data[0],list) else []
-    st.markdown('<div class="section-title">Overview</div>', unsafe_allow_html=True)
-    cols = st.columns(4)
-    metrics = [("Total dealers",len(dealers),"🏪","purple"),("Approved",max(0,len(dealers)-len(pending)),"✓","green"),("Pending review",len(pending),"◷","orange"),("Portal status","Live","●","blue")]
-    for col, (label,value,icon,tone) in zip(cols,metrics):
-        with col: metric_card(label,value,icon,tone,"From dealer API" if label!="Portal status" else "Connected dashboard")
-    st.markdown('<div class="section-title">Dealer management</div>', unsafe_allow_html=True)
-    tab1, tab2 = st.tabs(["All dealers", "Pending approvals"])
-    with tab1:
-        if dealers_data is None:
-            st.info("Tap Refresh dashboard data to load dealers from your backend.")
-        elif dealers_data[1]: st.error(dealers_data[1])
-        else: dealer_cards(dealers)
-    with tab2:
-        if pending_data is None: st.info("Tap Refresh dashboard data to load pending dealers.")
-        elif pending_data[1]: st.error(pending_data[1])
-        else: dealer_cards(pending)
-    st.warning("Approval and subscription renewal are intentionally not enabled in this dashboard until the exact production request and confirmation flow are verified.")
+st.markdown(f"""<div class="hero"><h1>Welcome back{', ' + st.session_state.user_name if st.session_state.user_name else ''} 👋</h1><p>Manage dealers, subscriptions and Girvi activity from one secure workspace.</p><p style="margin-top:12px;font-size:.9rem">PawnSecure Admin Console · {date.today().strftime('%d %B %Y')}</p></div>""", unsafe_allow_html=True)
 
-elif role == "DEALER":
-    hero(f"Good to see you, {name}", "Your Girvi activity and customer account overview.", "Dealer Portal")
-    if dealer_id is None:
-        st.error("Dealer ID was not returned by login, so APIs requiring X-DEALER-ID may not work.")
-    if st.button("↻  Refresh my dashboard", type="primary", use_container_width=True):
-        result = {}
-        for key,path in [("stats",PATHS["dashboard_stats"]),("today",PATHS["today_summary"]),("due",PATHS["due_today"]),("overdue",PATHS["overdue"]),("customers",PATHS["customers"]),("girvi",PATHS["girvi"])]:
-            params = {"page":0,"size":10} if key=="girvi" else None
-            result[key] = api_request("GET",path,token=token,dealer_id=dealer_id,params=params)
-        st.session_state.dealer_results = result
-        st.rerun()
-    results = st.session_state.get("dealer_results",{})
-    stats, stat_err = results.get("stats",(None,None))
-    st.markdown('<div class="section-title">Business snapshot</div>', unsafe_allow_html=True)
-    if stat_err: st.error("Dashboard statistics: "+stat_err)
-    elif isinstance(stats,dict):
-        metric_fields = [
-            ("Today's Girvi", "todayGirviAmount","₹","purple"),
-            ("Active customers","activeCustomers","","blue"),
-            ("Due today","dueTodayCount","","orange"),
-            ("Overdue accounts","overdueCount","","red"),
-            ("Closed today","todayClosedAmount","₹","green"),
-            ("Interest collected","todayInterestPaid","₹","teal"),
-        ]
-        cols = st.columns(3)
-        for i,(label,key,prefix,tone) in enumerate(metric_fields):
-            if key in stats:
-                with cols[i%3]: metric_card(label,f"{prefix}{stats[key]}","₹" if prefix=="₹" else "•",tone)
-    else: st.info("Tap Refresh my dashboard to load live figures from your backend.")
-    st.markdown('<div class="section-title">Account activity</div>', unsafe_allow_html=True)
-    tabs = st.tabs(["Today's Girvi","Due today","Overdue","Customers","Girvi records"])
-    for tab,(key,label) in zip(tabs,[("today","Today's Girvi"),("due","Due today"),("overdue","Overdue accounts"),("customers","My customers"),("girvi","Girvi records")]):
-        with tab:
-            if key not in results: st.info("Refresh the dashboard to load this section.")
+if not st.session_state.token:
+    st.markdown("### Sign in to PawnSecure")
+    st.info("Use your existing Admin or Dealer account. Login is sent to your Spring Boot `/api/auth/login` endpoint.")
+    with st.form("login_form"):
+        c1,c2 = st.columns(2)
+        with c1: email = st.text_input("Email")
+        with c2: password = st.text_input("Password", type="password")
+        login = st.form_submit_button("Sign in", type="primary", use_container_width=True)
+    if login:
+        if not email.strip() or not password:
+            st.error("Enter your email and password.")
+        else:
+            code, data = api_call("POST","/api/auth/login",json_data={"email":email.strip(),"password":password},needs_dealer=False)
+            if code == 200 and isinstance(data,dict) and data.get("token"):
+                st.session_state.token = data["token"]
+                st.session_state.dealer_id = data.get("id","")
+                st.session_state.user_name = data.get("name",email.split("@")[0])
+                st.session_state.role = str(data.get("role","")).replace("ROLE_","")
+                st.success("Login successful.")
+                st.rerun()
             else:
-                data,err = results[key]
-                if err: st.error(err)
-                else: show_data(data,label)
-else:
-    hero("Account not recognized", "The backend did not return an expected role.", "Sign-in support")
-    st.error(f"Received role: {role or 'empty'}. Expected ADMIN or DEALER.")
-    if st.button("Sign out"): st.session_state.auth=None; st.rerun()
+                st.error(f"Login failed ({code}): {data}")
+    st.stop()
 
-st.markdown("---")
-st.markdown('<p class="small-muted" style="text-align:center">PawnSecure · Connecting Trust. Securing Value. &nbsp; | &nbsp; Data served by your existing Spring Boot API</p>', unsafe_allow_html=True)
+role = st.session_state.role.upper()
+is_admin = "ADMIN" in role
+
+if page == "API & Settings":
+    st.markdown("### API connection")
+    st.caption("This dashboard calls your existing Java backend; it does not connect directly to PostgreSQL.")
+    with st.form("settings_form"):
+        base = st.text_input("Spring Boot base URL", value=st.session_state.api_base)
+        dealer_id = st.text_input("Dealer ID (used for X-DEALER-ID header)", value=str(st.session_state.dealer_id))
+        save = st.form_submit_button("Save settings", type="primary")
+    if save:
+        st.session_state.api_base = base.strip().rstrip("/")
+        st.session_state.dealer_id = dealer_id.strip()
+        st.success("Settings saved for this session.")
+    if st.button("Test login-protected API", use_container_width=True):
+        endpoint = "/api/admin/dealers" if is_admin else "/api/dashboard/stats"
+        code,data=api_call("GET",endpoint,needs_dealer=not is_admin)
+        if code==200: st.success(f"API reachable ({code}).")
+        else: st.warning(f"API returned {code}: {data}")
+    st.warning("Never paste your JWT token into screenshots or share it publicly. Session values are held in Streamlit session state.")
+    st.stop()
+
+if page == "Overview":
+    if is_admin:
+        code, dealers_payload = api_call("GET","/api/admin/dealers",needs_dealer=False)
+        dealers = as_list(dealers_payload) if code == 200 else []
+        pcode, pending_payload = api_call("GET","/api/admin/pending",needs_dealer=False)
+        pending = as_list(pending_payload) if pcode == 200 else []
+        approved = [d for d in dealers if str(first_value(d,"approved","isApproved","status","dealerStatus",default="")).lower() in ("true","approved","active")]
+        renewals = [d for d in dealers if "renew" in str(first_value(d,"subscriptionStatus","status",default="")).lower()]
+        c1,c2,c3,c4=st.columns(4)
+        show_metric(c1,"🏪","Total dealers",len(dealers) if code==200 else "—")
+        show_metric(c2,"✅","Approved / active",len(approved) if code==200 else "—")
+        show_metric(c3,"🕒","Pending approval",len(pending) if pcode==200 else "—")
+        show_metric(c4,"🔄","Renewal status",len(renewals) if code==200 else "—")
+        st.markdown('<div class="section-title">Recent dealer registrations</div>',unsafe_allow_html=True)
+        if code==200 and dealers:
+            rows=[]
+            for d in dealers[:8]:
+                rows.append({"Dealer":first_value(d,"name","shopName","businessName"),"Email":first_value(d,"email"),"Phone":first_value(d,"phone","phoneNumber"),"GST":first_value(d,"gstNumber","gst","licenseNumber"),"Status":first_value(d,"status","dealerStatus","approved","isApproved"),"Dashboard":first_value(d,"dashboardControl"),"ID":first_value(d,"id","dealerId")})
+            st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True)
+        elif code!=200:
+            st.warning(f"Could not load dealer list (HTTP {code}). {dealers_payload}")
+        else: st.info("The API returned no dealers.")
+        st.caption("Metrics are calculated from the current API response. If your Dealer entity uses different status field names, those cards may need field mapping.")
+    else:
+        code, stats = api_call("GET","/api/dashboard/stats")
+        tcode, today = api_call("GET","/api/girvi/today/summary")
+        duecode, due = api_call("GET","/api/girvi/due-today/count")
+        ocode, overdue = api_call("GET","/api/girvi/overdue/count")
+        stats = stats if isinstance(stats,dict) else {}
+        today = today if isinstance(today,dict) else {}
+        c1,c2,c3,c4=st.columns(4)
+        show_metric(c1,"💰","Today's Girvi",first_value(today,"totalAmount","amount","todayAmount",default="₹—"))
+        show_metric(c2,"👥","Active customers",first_value(stats,"activeCustomers","totalCustomers","customerCount"))
+        show_metric(c3,"📅","Due today",due if duecode==200 else "—")
+        show_metric(c4,"⏰","Overdue accounts",overdue if ocode==200 else "—")
+        st.markdown('<div class="section-title">Today’s activity</div>',unsafe_allow_html=True)
+        if tcode==200: st.json(today,expanded=True)
+        else: st.info(f"Today's summary endpoint returned {tcode}.")
+        if code!=200: st.warning(f"Dashboard stats returned {code}: {stats}")
+    st.stop()
+
+if page == "Dealer Management":
+    if not is_admin:
+        st.error("Dealer management is available to Admin accounts only.")
+        st.stop()
+    tab1,tab2=st.tabs(["All dealers","Pending approvals"])
+    with tab1:
+        if st.button("Refresh all dealers",type="primary"):
+            st.rerun()
+        code,data=api_call("GET","/api/admin/dealers",needs_dealer=False)
+        dealers=as_list(data)
+        if code==200 and dealers:
+            for d in dealers:
+                did=first_value(d,"id","dealerId",default="")
+                name=first_value(d,"name","shopName","businessName",default="Dealer")
+                status=str(first_value(d,"status","dealerStatus","approved","isApproved",default="Unknown"))
+                gst=first_value(d,"gstNumber","gst","licenseNumber")
+                phone=first_value(d,"phone","phoneNumber")
+                email=first_value(d,"email")
+                dash=first_value(d,"dashboardControl")
+                with st.container(border=True):
+                    left, right=st.columns([4,1])
+                    with left:
+                        st.markdown(f"#### 🏪 {name}")
+                        st.caption(f"GST: {gst}  ·  Phone: {phone}  ·  Email: {email}")
+                        st.markdown(f"**Status:** `{status}`　 **Dashboard:** `{dash}`　 **Dealer ID:** `{did}`")
+                    with right:
+                        st.button("View details",key=f"view_{did}",disabled=True,use_container_width=True)
+                        st.caption("Read-only card")
+        elif code!=200: st.error(f"Dealer API failed ({code}): {data}")
+        else: st.info("No dealer records returned.")
+    with tab2:
+        code,data=api_call("GET","/api/admin/pending",needs_dealer=False)
+        pending=as_list(data)
+        if code==200 and pending:
+            st.write(f"**{len(pending)} dealer(s) awaiting approval**")
+            for d in pending:
+                did=first_value(d,"id","dealerId",default="")
+                st.markdown(f"**{first_value(d,'name','shopName','businessName')}** · ID `{did}` · {first_value(d,'email')}")
+                st.caption(f"GST: {first_value(d,'gstNumber','gst','licenseNumber')} · Phone: {first_value(d,'phone','phoneNumber')}")
+                st.info("Approval changes account state. Use the existing React Admin Portal for approval until the exact dashboard-control request values are confirmed.")
+                st.divider()
+        elif code!=200: st.error(f"Pending dealer API failed ({code}): {data}")
+        else: st.success("No pending dealers.")
+    st.stop()
+
+if page == "Dealer Dashboard":
+    if is_admin:
+        st.info("You are signed in as Admin. To see dealer metrics, sign in with an existing Dealer account and enter its dealer ID if needed.")
+    code,stats=api_call("GET","/api/dashboard/stats")
+    if code==200 and isinstance(stats,dict):
+        st.markdown("### Dealer statistics")
+        cols=st.columns(3)
+        items=list(stats.items())
+        for i,(k,v) in enumerate(items[:9]):
+            show_metric(cols[i%3],"📊",str(k).replace("_"," ").title(),v)
+        with st.expander("Raw API response"): st.json(stats)
+    else:
+        st.warning(f"Dashboard stats API returned {code}: {stats}")
+    tabs=st.tabs(["Today's Girvi","Due today","Overdue"])
+    for tab, path in zip(tabs,["/api/girvi/today","/api/girvi/due-today","/api/girvi/overdue"]):
+        with tab:
+            if st.button("Load records",key="load_"+path):
+                c,d=api_call("GET",path)
+                if c==200:
+                    records=as_list(d)
+                    if records: st.dataframe(pd.json_normalize(records),use_container_width=True,hide_index=True)
+                    else: st.json(d)
+                else: st.error(f"Request failed ({c}): {d}")
+    st.stop()
