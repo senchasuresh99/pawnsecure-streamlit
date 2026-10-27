@@ -1,55 +1,36 @@
-# PawnSecure Streamlit Dashboard
+# PawnSecure Streamlit Admin + Dealer Dashboard
 
-A Python/Streamlit starter dashboard that calls the existing PawnSecure Java Spring Boot backend.
+This dashboard uses the real route mappings found in the supplied `pawnsecure-main.zip` source code.
 
-## Current architecture
+## Architecture
+Streamlit → existing Spring Boot API (`https://pawnsecure.in`) → existing Neon PostgreSQL database.
 
-- Frontend: React hosted on Netlify
-- Backend: Java Spring Boot hosted on Render (`https://pawnsecure.onrender.com`)
-- Database: PostgreSQL hosted on Neon
-- New dashboard: Streamlit
+It does not connect directly to PostgreSQL and does not modify the React website or Java backend.
 
-This dashboard does **not** run Java inside Streamlit and does not connect directly to Neon. It is a separate frontend that can call existing backend REST APIs.
+## Included functionality
+- Login via `POST /api/auth/login` and retain the returned JWT in the Streamlit session.
+- Admin: load all dealers (`GET /api/**`) and pending dealers (`GET /api/**`).
+- Dealer: load dashboard stats (`GET /api/**`), today's Girvi summary, due-today, overdue, customers and paginated Girvi records.
+- Send `Authorization: Bearer <token>` for authenticated calls.
+- Send `X-DEALER-ID` for endpoints requiring the dealer ID.
 
 ## Run locally
-
-Requires Python 3.10 or newer.
-
-```bash
-python -m venv .venv
-```
-
-Activate the environment:
-
-- Windows PowerShell: `.venv\Scripts\Activate.ps1`
-- macOS/Linux: `source .venv/bin/activate`
-
-Then run:
-
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app defaults to `https://pawnsecure.onrender.com`. You can override it by setting `PAWNSECURE_API_URL` in Streamlit Secrets.
+## Deploy
+1. Upload the contents of this folder to your GitHub repository.
+2. Create an app on Streamlit Community Cloud, selecting `app.py`.
+3. Deploy and sign in using an existing PawnSecure Admin or Dealer account.
 
-## Deploy on Streamlit Community Cloud
+The API base URL can be changed in the sidebar if needed.
 
-1. Push these files to a GitHub repository.
-2. In Streamlit Community Cloud, create an app from that repository.
-3. Set the main file path to `app.py`.
-4. Under app Settings → Secrets, add:
-
-```toml
-PAWNSECURE_API_URL = "https://pawnsecure.onrender.com"
-```
-
-5. Deploy.
-
-## API health check
-
-The dashboard tests `/actuator/health`. That route is available only if Spring Boot Actuator is installed and configured. If it is not available, enter a different health endpoint in the app. Do not expose sensitive Actuator endpoints.
-
-## Before adding real business data
-
-To build the dealer, customer, pawn transaction, fraud review, and subscription screens, map the actual API routes and authentication requirements from the Java project. Use the Java backend for authorization and business rules. Do not expose Neon credentials, JWT signing secrets, SMTP credentials, or customer Aadhaar data in Streamlit source code or logs.
+## Known limitations / careful notes
+- The dashboard is read-oriented. It intentionally does not trigger dealer approval or subscription renewal because approval requires a request DTO (`dashboardControl`) and these actions mutate production data.
+- It counts records returned by the admin list endpoints; it does not assume the Dealer entity's exact status field names.
+- Metal-rate admin controller currently has no active GET/POST mapping in the supplied source (its POST mapping is commented out), so metal rates are not presented as live here.
+- Collection endpoints were not found in the supplied controller mappings, so no fake collection figures are shown. The stats DTO does include today's closed amount and today's interest paid.
+- The login response role must be `ADMIN` or `DEALER`. If backend login returns a different role string, adjust role normalization after verifying the actual response.
+- Confirm deployment API URL and test with authorized accounts before production use.
